@@ -11,5 +11,9 @@ declare module 'vite' {
       note: string
       noteHTML: string
     }
+    'slidev:update-file': {
+      filepath: string
+      raw: string
+    }
   }
 }

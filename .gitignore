@@ -1,23 +1,83 @@
-.DS_Store
+# Claude and AI tools
+.claude*
+CLAUDE.md
+.cursor*
+
+# User working files
+TODO*
+archive*
+
+# Environment files
+.env*
+!.env.example
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Cache
+.npm/
 .eslintcache
-.idea
+.stylelintcache
+
+# Coverage
+coverage/
+.nyc_output/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Spotlight
+.Spotlight-V100
+
+# Trash
+.Trashes
+
+# Icon files
+Icon?
+
+# Volume metadata
+.fseventsd/
+.VolumeIcon.icns
+
+# Project-specific
+.certs
 .nuxt
 .output
 .slidev
 .vite-inspect
 *-export
-*.local
 *.pdf
-.env
 assets/demo
 components.d.ts
 composable-vue-cn
-dist
-dist-ssr
+cypress/downloads
 docs/.vitepress/@slidev
 docs/.vitepress/cache
-node_modules
-cypress/downloads
 packages/create-app/template/pages
 packages/create-app/template/slides.md
 packages/create-app/template/snippets

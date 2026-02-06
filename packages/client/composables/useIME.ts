@@ -4,6 +4,7 @@ import { ref, watch } from 'vue'
 export function useIME(content: ModelRef<string>) {
   const composingContent = ref(content.value)
   watch(content, (v) => {
+    console.log('[useIME] content watch fired, length:', v.length, 'composing matches:', v === composingContent.value)
     if (v !== composingContent.value) {
       composingContent.value = v
     }

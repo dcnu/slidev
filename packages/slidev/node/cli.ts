@@ -203,7 +203,8 @@ cli.command(
       if (remote)
         publicIp = await import('public-ip').then(r => r.publicIpv4())
 
-      lastRemoteUrl = printInfo(options, port, base, remote, tunnelUrl, publicIp)
+      const isHttps = server.resolvedUrls?.local.some(u => u.startsWith('https')) ?? !!server.config.server.https
+      lastRemoteUrl = printInfo(options, port, base, remote, tunnelUrl, publicIp, isHttps)
 
       return options
     }
@@ -638,6 +639,7 @@ function printInfo(
   remote?: string,
   tunnelUrl?: string,
   publicIp?: string,
+  isHttps?: boolean,
 ) {
   if (base && (!base.startsWith('/') || !base.endsWith('/'))) {
     console.error('Base URL must start and end with a slash "/"')
@@ -647,7 +649,6 @@ function printInfo(
   console.log()
   console.log()
   console.log(`  ${cyan('●') + blue('■') + yellow('▲')}`)
-  console.log(`${bold('  Slidev')}  ${blue(`v${version}`)} ${isInstalledGlobally.value ? yellow('(global)') : ''}`)
   console.log()
 
   verifyConfig(options.data.config, options.data.themeMeta, v => console.warn(yellow(`  ! ${v}`)))
@@ -659,7 +660,8 @@ function printInfo(
   if (port) {
     const baseText = base?.slice(0, -1) || ''
     const portAndBase = port + baseText
-    const baseUrl = `http://localhost:${bold(portAndBase)}`
+    const protocol = isHttps ? 'https' : 'http'
+    const baseUrl = `${protocol}://localhost:${bold(portAndBase)}`
     const query = remote ? `?password=${remote}` : ''
     const presenterPath = `${options.data.config.routerMode === 'hash' ? '/#/' : '/'}presenter/${query}`
     const entryPath = `${options.data.config.routerMode === 'hash' ? '/#/' : '/'}entry${query}/`
@@ -683,12 +685,12 @@ function printInfo(
         .forEach(v => (v || [])
           .filter(details => String(details.family).slice(-1) === '4' && !details.address.includes('127.0.0.1'))
           .forEach(({ address }) => {
-            lastRemoteUrl = `http://${address}:${portAndBase}${entryPath}`
+            lastRemoteUrl = `${protocol}://${address}:${portAndBase}${entryPath}`
             console.log(`${dim('  remote control ')}     > ${blue(lastRemoteUrl)}`)
           }))
 
       if (publicIp) {
-        lastRemoteUrl = `http://${publicIp}:${portAndBase}${entryPath}`
+        lastRemoteUrl = `${protocol}://${publicIp}:${portAndBase}${entryPath}`
         console.log(`${dim('  remote control ')}     > ${blue(lastRemoteUrl)}`)
       }
 

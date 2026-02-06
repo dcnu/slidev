@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "slidev build",
-    "dev": "nodemon -w '../../packages/slidev/dist/*.mjs' --exec \"slidev ./slides.md --open=false --log=info --inspect\"",
+    "dev": "slidev ./slides.md --port 3000 --open=false --log=info",
     "export": "slidev export",
     "export-notes": "slidev export-notes"
   },

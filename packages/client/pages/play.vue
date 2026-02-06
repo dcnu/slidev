@@ -45,7 +45,7 @@ if (import.meta.hot) {
       --width: calc(100vw - ${isEditorVertical.value ? 0 : editorWidth.value}px);
       --height: calc(100vh - ${isEditorVertical.value ? editorHeight.value : 0}px);
       position: fixed;
-      left: 0;
+      left: ${isEditorVertical.value ? 0 : editorWidth.value}px;
       top: 0;
       width: calc(var(--width) / var(--slidev-slide-scale));
       height: calc(var(--height) / var(--slidev-slide-scale));
@@ -85,8 +85,9 @@ const contentStyle = computed(() => {
 <template>
   <div
     id="page-root" ref="root" class="grid"
-    :class="isEditorVertical ? 'grid-rows-[1fr_max-content]' : 'grid-cols-[1fr_max-content]'"
+    :class="isEditorVertical ? 'grid-rows-[max-content_1fr]' : 'grid-cols-[max-content_1fr]'"
   >
+    <SideEditor v-if="SideEditor && showEditor" :resize="true" />
     <SlideContainer
       :style="{ background: 'var(--slidev-slide-container-background, black)' }"
       is-main
@@ -111,7 +112,6 @@ const contentStyle = computed(() => {
         </div>
       </template>
     </SlideContainer>
-    <SideEditor v-if="SideEditor && showEditor" :resize="true" />
   </div>
   <Controls v-if="!isPrintMode" />
   <div id="twoslash-container" />

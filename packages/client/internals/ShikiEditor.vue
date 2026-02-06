@@ -1,14 +1,36 @@
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 import { useIME } from '../composables/useIME'
 
 const props = defineProps<{
   placeholder?: string
 }>()
 const content = defineModel<string>({ required: true })
-const { composingContent, onInput, onCompositionEnd } = useIME(content)
+const emit = defineEmits<{
+  'update:cursorLine': [line: number]
+}>()
+const { composingContent, onInput: onIMEInput, onCompositionEnd } = useIME(content)
+
+watch(content, (v) => {
+  console.log('[ShikiEditor] model value changed, length:', v.length)
+}, { immediate: true })
 
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
+
+function getCursorLine() {
+  const el = textareaEl.value
+  if (!el)
+    return
+  const text = el.value.slice(0, el.selectionStart)
+  const line = text.split('\n').length
+  emit('update:cursorLine', line)
+}
+
+function onInput(e: Event) {
+  onIMEInput(e)
+  if (e instanceof InputEvent && !e.isComposing)
+    getCursorLine()
+}
 
 const highlight = shallowRef<((code: string) => string) | null>(null)
 import('../setup/shiki').then(async (m) => {
@@ -18,6 +40,7 @@ import('../setup/shiki').then(async (m) => {
     ...defaultHighlightOptions,
     lang: 'markdown',
   })
+  console.log('[ShikiEditor] highlight loaded')
 })
 </script>
 
@@ -29,6 +52,8 @@ import('../setup/shiki').then(async (m) => {
         ref="textareaEl" v-model="composingContent" :placeholder="props.placeholder"
         class="absolute inset-0 resize-none text-transparent bg-transparent focus:outline-none caret-black dark:caret-white overflow-y-hidden"
         @input="onInput"
+        @click="getCursorLine"
+        @keyup="getCursorLine"
         @compositionend="onCompositionEnd"
       />
     </div>

@@ -1,6 +1,7 @@
 import type { ResolvedSlidevOptions, SlideInfo, SlidePatch, SlidevData, SlidevServerOptions } from '@slidev/types'
 import type { LoadResult } from 'rollup'
 import type { ModuleNode, Plugin, ViteDevServer } from 'vite'
+import { readFile, writeFile } from 'node:fs/promises'
 import { notNullish, range } from '@antfu/utils'
 import * as parser from '@slidev/parser/fs'
 import equal from 'fast-deep-equal'
@@ -65,6 +66,42 @@ export function createSlidesLoader(
     }
   }
 
+  function diffSlides(hot: ViteDevServer['hot'], oldData: SlidevData, newData: SlidevData) {
+    const length = Math.min(oldData.slides.length, newData.slides.length)
+    for (let i = 0; i < length; i++) {
+      const a = oldData.slides[i]
+      const b = newData.slides[i]
+
+      if (
+        !hmrSlidesIndexes.has(i)
+        && a.content.trim() === b.content.trim()
+        && a.title?.trim() === b.title?.trim()
+        && equal(a.frontmatter, b.frontmatter)
+      ) {
+        if (a.note !== b.note) {
+          hot.send(
+            'slidev:update-note',
+            {
+              no: i + 1,
+              note: b!.note || '',
+              noteHTML: renderNote(b!.note || ''),
+            },
+          )
+        }
+        continue
+      }
+
+      hot.send(
+        'slidev:update-slide',
+        {
+          no: i + 1,
+          data: withRenderedNote(newData.slides[i]),
+        },
+      )
+      hmrSlidesIndexes.add(i)
+    }
+  }
+
   return {
     name: 'slidev:loader',
     enforce: 'pre',
@@ -74,6 +111,31 @@ export function createSlidesLoader(
       updateServerWatcher()
 
       server.middlewares.use(async (req, res, next) => {
+        if (req.url === '/__slidev/file.json') {
+          const filepath = data.entry.filepath
+          if (req.method === 'GET') {
+            const raw = await readFile(filepath, 'utf-8')
+            res.setHeader('Content-Type', 'application/json')
+            res.write(JSON.stringify({ filepath, raw }))
+            return res.end()
+          }
+          else if (req.method === 'POST') {
+            const body = await getBodyJson(req)
+            if (!body.raw || typeof body.raw !== 'string') {
+              res.statusCode = 400
+              res.write(JSON.stringify({ error: 'raw must be a non-empty string' }))
+              return res.end()
+            }
+
+            await writeFile(filepath, body.raw, 'utf-8')
+
+            res.setHeader('Content-Type', 'application/json')
+            res.statusCode = 200
+            res.write(JSON.stringify({ raw: body.raw }))
+            return res.end()
+          }
+        }
+
         const match = req.url?.match(regexSlideReqPath)
         if (!match)
           return next()
@@ -191,43 +253,15 @@ export function createSlidesLoader(
         }, 1)
       }
 
-      const length = Math.min(data.slides.length, newData.slides.length)
-
-      for (let i = 0; i < length; i++) {
-        const a = data.slides[i]
-        const b = newData.slides[i]
-
-        if (
-          !hmrSlidesIndexes.has(i)
-          && a.content.trim() === b.content.trim()
-          && a.title?.trim() === b.title?.trim()
-          && equal(a.frontmatter, b.frontmatter)
-        ) {
-          if (a.note !== b.note) {
-            ctx.server.hot.send(
-              'slidev:update-note',
-              {
-                no: i + 1,
-                note: b!.note || '',
-                noteHTML: renderNote(b!.note || ''),
-              },
-            )
-          }
-          continue
-        }
-
-        ctx.server.hot.send(
-          'slidev:update-slide',
-          {
-            no: i + 1,
-            data: withRenderedNote(newData.slides[i]),
-          },
-        )
-        hmrSlidesIndexes.add(i)
-      }
+      diffSlides(ctx.server.hot, data, newData)
 
       Object.assign(data, newData)
       Object.assign(utils, createDataUtils(options))
+
+      const md = newData.markdownFiles[ctx.file]
+      if (md) {
+        ctx.server.hot.send('slidev:update-file', { filepath: ctx.file, raw: md.raw })
+      }
 
       if (hmrSlidesIndexes.size > 0)
         moduleIds.add(templateTitleRendererMd.id)
